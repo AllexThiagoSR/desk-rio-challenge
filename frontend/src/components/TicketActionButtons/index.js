@@ -3,7 +3,7 @@ import { useHistory } from "react-router-dom";
 
 import { makeStyles } from "@material-ui/core/styles";
 import { IconButton } from "@material-ui/core";
-import { MoreVert, Replay } from "@material-ui/icons";
+import { MoreVert, Replay, Search } from "@material-ui/icons";
 
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
@@ -24,7 +24,7 @@ const useStyles = makeStyles(theme => ({
 	},
 }));
 
-const TicketActionButtons = ({ ticket }) => {
+const TicketActionButtons = ({ ticket, handleSearchOpen }) => {
 	const classes = useStyles();
 	const history = useHistory();
 	const [anchorEl, setAnchorEl] = useState(null);
@@ -63,14 +63,20 @@ const TicketActionButtons = ({ ticket }) => {
 	return (
 		<div className={classes.actionButtons}>
 			{ticket.status === "closed" && (
-				<ButtonWithSpinner
-					loading={loading}
-					startIcon={<Replay />}
-					size="small"
-					onClick={e => handleUpdateTicketStatus(e, "open", user?.id)}
-				>
-					{i18n.t("messagesList.header.buttons.reopen")}
-				</ButtonWithSpinner>
+				<>
+					<ButtonWithSpinner
+						loading={loading}
+						startIcon={<Replay />}
+						size="small"
+						onClick={e => handleUpdateTicketStatus(e, "open", user?.id)}
+					>
+						{i18n.t("messagesList.header.buttons.reopen")}
+					</ButtonWithSpinner>
+					<IconButton>
+						<Search />
+					</IconButton>
+				</>
+				
 			)}
 			{ticket.status === "open" && (
 				<>
@@ -91,6 +97,9 @@ const TicketActionButtons = ({ ticket }) => {
 					>
 						{i18n.t("messagesList.header.buttons.resolve")}
 					</ButtonWithSpinner>
+					<IconButton onClick={() => handleSearchOpen((searchIsOpen) => !searchIsOpen)}>
+						<Search />
+					</IconButton>
 					<IconButton onClick={handleOpenTicketOptionsMenu}>
 						<MoreVert />
 					</IconButton>
@@ -103,15 +112,20 @@ const TicketActionButtons = ({ ticket }) => {
 				</>
 			)}
 			{ticket.status === "pending" && (
-				<ButtonWithSpinner
-					loading={loading}
-					size="small"
-					variant="contained"
-					color="primary"
-					onClick={e => handleUpdateTicketStatus(e, "open", user?.id)}
-				>
-					{i18n.t("messagesList.header.buttons.accept")}
-				</ButtonWithSpinner>
+				<>
+					<ButtonWithSpinner
+						loading={loading}
+						size="small"
+						variant="contained"
+						color="primary"
+						onClick={e => handleUpdateTicketStatus(e, "open", user?.id)}
+					>
+						{i18n.t("messagesList.header.buttons.accept")}
+					</ButtonWithSpinner>
+					<IconButton onClick={() => handleSearchOpen((searchIsOpen) => !searchIsOpen)}>
+						<Search />
+					</IconButton>
+				</>
 			)}
 		</div>
 	);
