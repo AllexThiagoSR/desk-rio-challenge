@@ -24,7 +24,7 @@ const useStyles = makeStyles(theme => ({
 	},
 }));
 
-const TicketActionButtons = ({ ticket, handleSearchOpen }) => {
+const TicketActionButtons = ({ ticket }) => {
 	const classes = useStyles();
 	const history = useHistory();
 	const [anchorEl, setAnchorEl] = useState(null);
@@ -97,9 +97,6 @@ const TicketActionButtons = ({ ticket, handleSearchOpen }) => {
 					>
 						{i18n.t("messagesList.header.buttons.resolve")}
 					</ButtonWithSpinner>
-					<IconButton onClick={() => handleSearchOpen((searchIsOpen) => !searchIsOpen)}>
-						<Search />
-					</IconButton>
 					<IconButton onClick={handleOpenTicketOptionsMenu}>
 						<MoreVert />
 					</IconButton>
@@ -122,9 +119,7 @@ const TicketActionButtons = ({ ticket, handleSearchOpen }) => {
 					>
 						{i18n.t("messagesList.header.buttons.accept")}
 					</ButtonWithSpinner>
-					<IconButton onClick={() => handleSearchOpen((searchIsOpen) => !searchIsOpen)}>
-						<Search />
-					</IconButton>
+					
 				</>
 			)}
 		</div>

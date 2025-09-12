@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import openSocket from "../../services/socket-io";
 import clsx from "clsx";
 
-import { Paper, makeStyles } from "@material-ui/core";
+import { IconButton, Paper, makeStyles } from "@material-ui/core";
 
 import ContactDrawer from "../ContactDrawer";
 import MessageInput from "../MessageInput/";
@@ -17,6 +17,7 @@ import api from "../../services/api";
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import toastError from "../../errors/toastError";
 import TicketSearchMessages from "../TicketSearchMessages";
+import { Search } from "@material-ui/icons";
 
 const drawerWidth = 320;
 
@@ -139,14 +140,21 @@ const Ticket = () => {
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
+    setSearchOpen(false);
   };
 
   const handleDrawerClose = () => {
     setDrawerOpen(false);
+    setSearchOpen(false);
   };
 
   const handleSearchClose = () => {
     setSearchOpen(false);
+    setDrawerOpen(false);
+  };
+  const handleSearchOpen = () => {
+    setSearchOpen(true);
+    setDrawerOpen(false);
   };
 
   return (
@@ -169,8 +177,10 @@ const Ticket = () => {
           <div className={classes.ticketActionButtons}>
             <TicketActionButtons
               ticket={ticket}
-              handleSearchOpen={setSearchOpen}
             />
+            <IconButton onClick={handleSearchOpen}>
+              <Search />
+            </IconButton>
           </div>
         </TicketHeader>
         <ReplyMessageProvider>
