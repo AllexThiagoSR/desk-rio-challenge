@@ -72,9 +72,6 @@ const TicketActionButtons = ({ ticket }) => {
 					>
 						{i18n.t("messagesList.header.buttons.reopen")}
 					</ButtonWithSpinner>
-					<IconButton>
-						<Search />
-					</IconButton>
 				</>
 				
 			)}

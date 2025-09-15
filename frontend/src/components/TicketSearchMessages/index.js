@@ -1,8 +1,8 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 // import { useHistory } from "react-router-dom";
 
 import { makeStyles } from "@material-ui/core/styles";
-import { Drawer, IconButton, InputBase, Paper } from "@material-ui/core";
+import { Card, Drawer, IconButton, InputBase, List, Paper, Typography } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
 
 // import { i18n } from "../../translate/i18n";
@@ -11,6 +11,8 @@ import { Close } from "@material-ui/icons";
 // import ButtonWithSpinner from "../ButtonWithSpinner";
 // import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import toastError from "../../errors/toastError";
+import api from "../../services/api";
 
 const drawerWidth = 320;
 
@@ -21,7 +23,7 @@ const useStyles = makeStyles(theme => ({
 		backgroundColor: "#eee",
 		alignItems: "center",
 		padding: theme.spacing(0, 1),
-		minHeight: "73px",
+		minHeight: "80px",
 		justifyContent: "flex-center",
 		paddingTop: '49px'
 	},
@@ -33,6 +35,8 @@ const useStyles = makeStyles(theme => ({
 		borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
 		borderTopRightRadius: 4,
 		borderBottomRightRadius: 4,
+		flexDirection: "column",
+		justifyContent: "space-between",
 	},
 	content: {
 		display: "flex",
@@ -64,17 +68,43 @@ const useStyles = makeStyles(theme => ({
 	drawerClosed: {
 		width: 0,
 		flexShrink: 0,
+	},
+	messageDate: {
+		alignSelf: "flex-start",
+		fontSize: "11px"
+	},
+	messageContainer: {
+		display: "flex",
+		flexDirection: "column",
+		padding: "4px 8px",
+		minHeight: "50px",
+		marginBottom: "2px"
+	},
+	messagesList: {
+		maxHeight: "90%",
+		overflowY: "scroll",
+	},
+	loadingList: {
+		display: "flex",
+		flexGrow: "1",
+		justifyContent: "center",
+		alignItems: "center"
 	}
 }));
 
 const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 	const classes = useStyles();
+	const [messages, setMessages] = useState([]);
+	const [_, setTotalMessages] = useState(0);
+	const [pageNumber, setPageNumber] = useState(1);
+	const [hasMore, setHasMore] = useState(false);
+	const lastMessageRef = useRef();
 	const [loading, setLoading] = useState(false);
+	const [loadingFirstSearch, setLoadingFirstSearch] = useState(false);
 	const [searchInputIsOnFocus, setSearchInputIsOnFocus] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [finalSearchQuery, setFinalSearchQuery] = useState("");
 	const [currentTimeoutId, setCurrentTimeoutId] = useState();
-	const { user } = useContext(AuthContext);
 
 	useEffect(() =>{
 		const timeoutId = setTimeout(() => {
@@ -84,7 +114,65 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 				setFinalSearchQuery("")
 		}, 900, [])
 		setCurrentTimeoutId(timeoutId)
-	}, [searchQuery])
+	}, [searchQuery]);
+
+	useEffect(() => {
+    setLoading(true);
+    const delayDebounceFn = setTimeout(() => {
+      const fetchMessagesByQueryLoadMore = async () => {
+        try {
+					if (!finalSearchQuery || !hasMore) return;
+          const { data } = await api.get(
+						`/messages/${ticket.id}/search`,
+						{ params: { q: finalSearchQuery, pageNumber } }
+					);
+					setMessages((previousMessages) => [...previousMessages, ...data.messages])
+					setHasMore(data.hasMore);
+					setTotalMessages(data.total)
+					setLoading(false);
+        } catch (err) {
+          setLoading(false);
+          toastError(err);
+        }
+      };
+      fetchMessagesByQueryLoadMore();
+    }, 200);
+    return () => {
+      clearTimeout(delayDebounceFn);
+    };
+  }, [pageNumber]);
+
+	useEffect(() => {
+    setLoadingFirstSearch(true);
+    const delayDebounceFn = setTimeout(() => {
+      const fetchMessagesByQueryPage1 = async () => {
+        try {
+					if (!finalSearchQuery) {
+						setMessages([]);
+						setHasMore(false);
+						setTotalMessages(0)
+						setLoadingFirstSearch(false);
+						setPageNumber(1);
+						return;
+					}
+          const { data } = await api.get(`/messages/${ticket.id}/search`, {
+            params: { q: finalSearchQuery },
+          });
+					setMessages(data.messages)
+					setHasMore(data.hasMore);
+					setTotalMessages(data.total)
+					setLoadingFirstSearch(false);
+        } catch (err) {
+          setLoadingFirstSearch(false);
+          toastError(err);
+        }
+      };
+      fetchMessagesByQueryPage1();
+    }, 200);
+    return () => {
+      clearTimeout(delayDebounceFn);
+    };
+  }, [finalSearchQuery]);
 
 	return (
 		<Drawer
@@ -112,7 +200,26 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 					}}
 				/>
 			</div>
-			<p>Valor Final: {finalSearchQuery}</p>
+			{
+				loadingFirstSearch
+					? (<div className={classes.loadingList}>Carregando</div>)
+					: (<List className={classes.messagesList}>
+						{
+							messages.map((message) => (
+								<Card key={message.id} className={classes.messageContainer}>
+									<Typography
+										className={classes.messageDate}
+									>
+										{new Date(message.createdAt).toLocaleDateString('pt-br')}
+									</Typography>
+									<Typography>
+										{message.body}
+									</Typography>
+								</Card>
+							))
+						}
+					</List>)
+			}
 		</Drawer>
 	);
 };
