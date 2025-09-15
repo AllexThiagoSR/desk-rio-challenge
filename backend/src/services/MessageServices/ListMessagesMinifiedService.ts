@@ -12,6 +12,7 @@ interface Request {
 interface Response {
   messages: Message[];
   hasMore: boolean;
+  total: number;
 }
 
 const toBooleanQuery = (query: string) => {
@@ -66,7 +67,8 @@ const ListMessagesMinifiedService = async ({
 
   return {
     messages: messages as unknown as Message[],
-    hasMore
+    hasMore,
+    total: totalResults,
   };
 };
 

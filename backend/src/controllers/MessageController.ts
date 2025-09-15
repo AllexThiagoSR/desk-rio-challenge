@@ -87,6 +87,6 @@ export const listWithQuery = async (
   const { ticketId } = req.params;
   const { page, q } = req.query as SearchQuery;
 
-  const { messages, hasMore } = await ListMessagesMinifiedService({ticketId, pageNumber: page, query: q })
-  return res.status(200).json({ messages, hasMore });
+  const { messages, hasMore, total } = await ListMessagesMinifiedService({ticketId, pageNumber: page, query: q })
+  return res.status(200).json({ messages, hasMore, total });
 }
