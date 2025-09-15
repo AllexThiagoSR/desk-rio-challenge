@@ -1,8 +1,8 @@
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // import { useHistory } from "react-router-dom";
 
 import { makeStyles } from "@material-ui/core/styles";
-import { Card, Drawer, IconButton, InputBase, List, Paper, Typography } from "@material-ui/core";
+import { Card, CircularProgress, Drawer, IconButton, InputBase, List, Paper, Typography } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
 
 // import { i18n } from "../../translate/i18n";
@@ -10,13 +10,17 @@ import { Close } from "@material-ui/icons";
 // import TicketOptionsMenu from "../TicketOptionsMenu";
 // import ButtonWithSpinner from "../ButtonWithSpinner";
 // import toastError from "../../errors/toastError";
-import { AuthContext } from "../../context/Auth/AuthContext";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
+import { green } from "@material-ui/core/colors";
 
 const drawerWidth = 320;
 
 const useStyles = makeStyles(theme => ({
+	circleLoading: {
+    color: green[500],
+    opacity: "70%",
+  },
 	header: {
 		display: "flex",
 		borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
@@ -89,22 +93,86 @@ const useStyles = makeStyles(theme => ({
 		flexGrow: "1",
 		justifyContent: "center",
 		alignItems: "center"
+	},
+	emptyList: {
+		display: "flex",
+		flexGrow: "1",
+		justifyContent: "center",
+		alignItems: "center"
 	}
 }));
 
 const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 	const classes = useStyles();
+
 	const [messages, setMessages] = useState([]);
 	const [_, setTotalMessages] = useState(0);
 	const [pageNumber, setPageNumber] = useState(1);
 	const [hasMore, setHasMore] = useState(false);
-	const lastMessageRef = useRef();
 	const [loading, setLoading] = useState(false);
 	const [loadingFirstSearch, setLoadingFirstSearch] = useState(false);
 	const [searchInputIsOnFocus, setSearchInputIsOnFocus] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [finalSearchQuery, setFinalSearchQuery] = useState("");
 	const [currentTimeoutId, setCurrentTimeoutId] = useState();
+	
+	const lastObserverMessageRef = useRef(null);
+	const abortRef = useRef(null);
+	const lastNodeRef = useRef(null);
+	const loadingRef = useRef(loading);
+	const hasMoreRef = useRef(hasMore);
+
+	useEffect(() => { loadingRef.current = loading; }, [loading]);
+	useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
+	useEffect(() => {
+		lastObserverMessageRef.current = new IntersectionObserver((entries) => {
+			const first = entries[0];
+			if (!first.isIntersecting) return;
+			if (loadingRef.current || !hasMoreRef.current) return;
+
+			lastObserverMessageRef.current.unobserve(first.target);
+			setPageNumber((previousPage) => previousPage + 1);
+		}, {
+			root: null,
+			threshold: 0,
+		});
+
+		return () => lastObserverMessageRef.current?.disconnect();
+	}, []); 
+
+	const loadMoreMessagesByQuery = useCallback(async () => {
+		if (loading) return;
+		if (!finalSearchQuery || !hasMore) return;
+		setLoading(true);
+
+		if (abortRef.current) abortRef.current.abort();
+		const ctrl = new AbortController();
+		abortRef.current = ctrl;
+		try {
+			const { data } = await api.get(
+				`/messages/${ticket.id}/search`,
+				{ params: { q: finalSearchQuery, page: pageNumber } }
+			);
+			setMessages((previousMessages) => [...previousMessages, ...data.messages])
+			setHasMore(data.hasMore);
+			setTotalMessages(data.total)
+			setLoading(false);
+		} catch (err) {
+			setLoading(false);
+			toastError(err);
+		}
+	}, [finalSearchQuery, hasMore, pageNumber]);
+
+	const lastItemRef = useCallback(
+    (node) => {
+      if (!node) return;
+			if (lastNodeRef.current === node) return;
+			if (lastNodeRef.current) lastObserverMessageRef.current.unobserve(lastNodeRef.current);
+			if (node) lastObserverMessageRef.current.observe(node);
+			lastNodeRef.current = node;
+    },
+    []
+  );
 
 	useEffect(() =>{
 		const timeoutId = setTimeout(() => {
@@ -117,26 +185,9 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 	}, [searchQuery]);
 
 	useEffect(() => {
-    setLoading(true);
-    const delayDebounceFn = setTimeout(() => {
-      const fetchMessagesByQueryLoadMore = async () => {
-        try {
-					if (!finalSearchQuery || !hasMore) return;
-          const { data } = await api.get(
-						`/messages/${ticket.id}/search`,
-						{ params: { q: finalSearchQuery, pageNumber } }
-					);
-					setMessages((previousMessages) => [...previousMessages, ...data.messages])
-					setHasMore(data.hasMore);
-					setTotalMessages(data.total)
-					setLoading(false);
-        } catch (err) {
-          setLoading(false);
-          toastError(err);
-        }
-      };
-      fetchMessagesByQueryLoadMore();
-    }, 200);
+		const delayDebounceFn = setTimeout(() => {
+      loadMoreMessagesByQuery();
+    }, 100);
     return () => {
       clearTimeout(delayDebounceFn);
     };
@@ -145,7 +196,7 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 	useEffect(() => {
     setLoadingFirstSearch(true);
     const delayDebounceFn = setTimeout(() => {
-      const fetchMessagesByQueryPage1 = async () => {
+      const firstFetchMessagesByQuery= async () => {
         try {
 					if (!finalSearchQuery) {
 						setMessages([]);
@@ -155,10 +206,12 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 						setPageNumber(1);
 						return;
 					}
-          const { data } = await api.get(`/messages/${ticket.id}/search`, {
-            params: { q: finalSearchQuery },
-          });
-					setMessages(data.messages)
+          const { data } = await api.get(
+						`/messages/${ticket.id}/search`,
+						{ params: { q: finalSearchQuery } }
+					);
+					if (!data.messages.length) setMessages(null)
+					else setMessages(data.messages)
 					setHasMore(data.hasMore);
 					setTotalMessages(data.total)
 					setLoadingFirstSearch(false);
@@ -167,12 +220,49 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
           toastError(err);
         }
       };
-      fetchMessagesByQueryPage1();
+      firstFetchMessagesByQuery();
     }, 200);
     return () => {
       clearTimeout(delayDebounceFn);
     };
   }, [finalSearchQuery]);
+
+	const messagesList = useMemo(() => {
+    if (messages === null && !loading)
+				return <div>Nenhum resultado</div>;
+		return (
+			<List
+				className={classes.messagesList}
+			>
+				{
+					messages.map((message, index) => (
+						<Card
+							key={message.id}
+							className={classes.messageContainer}
+							ref={index === messages.length - 1 ? lastItemRef : undefined}
+						>
+							<Typography
+								className={classes.messageDate}
+							>
+								{new Date(message.createdAt).toLocaleDateString('pt-br')}
+							</Typography>
+							<Typography>
+								{message.body}
+							</Typography>
+						</Card>
+					))
+				}
+				{
+					loading 
+						&& (
+							<div className={classes.loadingList}>
+								<CircularProgress className={classes.circleLoading} />
+							</div>
+						)
+				}
+			</List>
+		);
+  }, [messages, lastItemRef, loading]);
 
 	return (
 		<Drawer
@@ -180,9 +270,7 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 			variant="persistent"
 			anchor="right"
 			open={open}
-			classes={{
-				paper: classes.drawerPaper,
-			}}
+			classes={{ paper: classes.drawerPaper }}
 		>
 			<div className={classes.header}>
 				<IconButton onClick={handleSearchClose}>
@@ -202,23 +290,10 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 			</div>
 			{
 				loadingFirstSearch
-					? (<div className={classes.loadingList}>Carregando</div>)
-					: (<List className={classes.messagesList}>
-						{
-							messages.map((message) => (
-								<Card key={message.id} className={classes.messageContainer}>
-									<Typography
-										className={classes.messageDate}
-									>
-										{new Date(message.createdAt).toLocaleDateString('pt-br')}
-									</Typography>
-									<Typography>
-										{message.body}
-									</Typography>
-								</Card>
-							))
-						}
-					</List>)
+					? (<div className={classes.loadingList}>
+							<CircularProgress className={classes.circleLoading} />
+						</div>)
+					: (messagesList)
 			}
 		</Drawer>
 	);
