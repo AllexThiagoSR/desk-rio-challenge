@@ -1,18 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-// import { useHistory } from "react-router-dom";
 
 import { makeStyles } from "@material-ui/core/styles";
 import { Card, CircularProgress, Drawer, IconButton, InputBase, List, Paper, Typography } from "@material-ui/core";
 import { Close } from "@material-ui/icons";
-
-// import { i18n } from "../../translate/i18n";
-// import api from "../../services/api";
-// import TicketOptionsMenu from "../TicketOptionsMenu";
-// import ButtonWithSpinner from "../ButtonWithSpinner";
-// import toastError from "../../errors/toastError";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
 import { green } from "@material-ui/core/colors";
+import { useHistory } from "react-router-dom";
 
 const drawerWidth = 320;
 
@@ -39,8 +33,7 @@ const useStyles = makeStyles(theme => ({
 		borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
 		borderTopRightRadius: 4,
 		borderBottomRightRadius: 4,
-		flexDirection: "column",
-		justifyContent: "space-between",
+		flexDirection: "column"
 	},
 	content: {
 		display: "flex",
@@ -82,11 +75,13 @@ const useStyles = makeStyles(theme => ({
 		flexDirection: "column",
 		padding: "4px 8px",
 		minHeight: "50px",
-		marginBottom: "2px"
+		marginBottom: "2px",
+		cursor: "pointer"
 	},
 	messagesList: {
 		maxHeight: "90%",
 		overflowY: "scroll",
+
 	},
 	loadingList: {
 		display: "flex",
@@ -122,23 +117,19 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 	const loadingRef = useRef(loading);
 	const hasMoreRef = useRef(hasMore);
 
-	useEffect(() => { loadingRef.current = loading; }, [loading]);
-	useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
-	useEffect(() => {
-		lastObserverMessageRef.current = new IntersectionObserver((entries) => {
-			const first = entries[0];
-			if (!first.isIntersecting) return;
-			if (loadingRef.current || !hasMoreRef.current) return;
+	const history = useHistory();
 
-			lastObserverMessageRef.current.unobserve(first.target);
-			setPageNumber((previousPage) => previousPage + 1);
-		}, {
-			root: null,
-			threshold: 0,
-		});
-
-		return () => lastObserverMessageRef.current?.disconnect();
-	}, []); 
+	const goToMessage = useCallback(async (messageId) => {
+		try {
+			if (!ticket) return
+			const { data } = await api.get(`/messages/${ticket.id}/${messageId}/meta`)
+			history.replace(`/tickets/${ticket.id}?focus=${messageId}&page=${data.page}`);
+			handleSearchClose();
+		}
+		catch(err) {
+			toastError(err);
+		}
+	}, [history, ticket?.id]);
 
 	const loadMoreMessagesByQuery = useCallback(async () => {
 		if (loading) return;
@@ -173,6 +164,25 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
     },
     []
   );
+
+	useEffect(() => { loadingRef.current = loading; }, [loading]);
+	useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
+	useEffect(() => {
+		lastObserverMessageRef.current = new IntersectionObserver((entries) => {
+			const first = entries[0];
+			if (!first.isIntersecting) return;
+			if (loadingRef.current || !hasMoreRef.current) return;
+
+			lastObserverMessageRef.current.unobserve(first.target);
+			setPageNumber((previousPage) => previousPage + 1);
+		}, {
+			root: null,
+			threshold: 0,
+		});
+
+		return () => lastObserverMessageRef.current?.disconnect();
+	}, []); 
+
 
 	useEffect(() =>{
 		const timeoutId = setTimeout(() => {
@@ -238,6 +248,7 @@ const TicketSearchMessages = ({ ticket, open, handleSearchClose }) => {
 					messages.map((message, index) => (
 						<Card
 							key={message.id}
+							onClick={() => goToMessage(message.id)}
 							className={classes.messageContainer}
 							ref={index === messages.length - 1 ? lastItemRef : undefined}
 						>
