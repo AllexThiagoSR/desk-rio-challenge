@@ -10,6 +10,7 @@ import DeleteWhatsAppMessage from "../services/WbotServices/DeleteWhatsAppMessag
 import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
 import ListMessagesMinifiedService from "../services/MessageServices/ListMessagesMinifiedService";
+import GetMessageMetadata from "../services/MessageServices/GetMessageMetadata";
 
 type IndexQuery = {
   pageNumber: string;
@@ -89,4 +90,14 @@ export const listWithQuery = async (
 
   const { messages, hasMore, total } = await ListMessagesMinifiedService({ticketId, pageNumber: page, query: q })
   return res.status(200).json({ messages, hasMore, total });
+}
+
+export const getMessageMeta = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { ticketId, messageId } = req.params;
+
+  const { page, pageSize, total } = await GetMessageMetadata({ticketId, messageId})
+  return res.status(200).json({ page, pageSize, total });
 }

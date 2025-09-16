@@ -56,7 +56,7 @@ const ListMessagesMinifiedService = async ({
     FROM Messages
     WHERE ticketId = ?
       AND MATCH(body) AGAINST(? IN BOOLEAN MODE);
-  `
+  `;
 
   const [[messages], [[count]]] = await Promise.all([
     await sequelize.query({ query: queryToGetMessages, values: [ticketId, toBooleanQuery(query), limit, offset]}),
