@@ -320,26 +320,28 @@ const MessagesList = ({ ticketId, isGroup }) => {
   const messageOptionsMenuOpen = Boolean(anchorEl);
   const lastMessageRef = useRef();
   const currentTicketId = useRef(ticketId);
-
   const location = useLocation();
   const history = useHistory();
-  const queryStrings = new URLSearchParams(location.search);
-  const focus = queryStrings.get("focus");
-  const page = queryStrings.get("page");
-  const [focusMessageId, setFocusMessageId] = useState(focus);
+  const [focusMessageId, setFocusMessageId] = useState();
   const focusingRef = useRef(false);
-
+  
+  console.log({ pageNumber, focusMessageId, focusingRef });
+  
   useEffect(() => {
-     if (focus && page) {
+    const queryStrings = new URLSearchParams(location.search);
+    const focus = queryStrings.get("focus");
+    const page = queryStrings.get("page");
+    currentTicketId.current = ticketId;
+    if (focus && page) {
       focusingRef.current = true;
       setPageNumber(Number(page));
       setFocusMessageId(focus);
     } else {
       dispatch({ type: "RESET" });
       setPageNumber(1);
-      currentTicketId.current = ticketId;
+      setFocusMessageId(undefined);
     }
-  }, [ticketId]);
+  }, [ticketId, location.search]);
 
   useEffect(() => {
     setLoading(true);
@@ -350,7 +352,11 @@ const MessagesList = ({ ticketId, isGroup }) => {
             params: { pageNumber },
           });
 
+          console.log("Cheguei aqui");
+          
+
           if (currentTicketId.current === ticketId) {
+            console.log("Cheguei aqui no carregamento de mensagens");
             dispatch({ type: "LOAD_MESSAGES", payload: data.messages });
             setHasMore(data.hasMore);
             setLoading(false);
@@ -373,7 +379,6 @@ const MessagesList = ({ ticketId, isGroup }) => {
             const queryStrings = new URLSearchParams(location.search);
             queryStrings.delete("focus");
             queryStrings.delete("page");
-            history.replace({ search: queryStrings.toString() });
           });
         }
         } catch (err) {
