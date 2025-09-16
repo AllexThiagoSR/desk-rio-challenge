@@ -19,7 +19,7 @@ const GetMessageMetadata = async ({
   ticketId,
   messageId
 }: Request): Promise<Response> => {
-  const limit = 40;
+  const limit = 20;
   const ticket = await ShowTicketService(ticketId);
 
   if (!ticket) throw new AppError("ERR_NO_TICKET_FOUND", 404);
@@ -44,8 +44,6 @@ const GetMessageMetadata = async ({
     FROM Messages
     WHERE ticketId = ?;
   `;
-
-  const result = await sequelize.query(queryToGetMetadata,  { replacements: { pageSize: limit, messageId } });
 
   const [[[pageNumberResult]], [[totalResults]]] = await Promise.all([
     await sequelize.query(queryToGetMetadata,  { replacements: { pageSize: limit, messageId } }),
