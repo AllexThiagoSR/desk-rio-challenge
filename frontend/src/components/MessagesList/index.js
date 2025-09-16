@@ -333,12 +333,14 @@ const MessagesList = ({ ticketId, isGroup }) => {
       focusingRef.current = true;
       setPageNumber(Number(page));
       setFocusMessageId(focus);
-    } else {
-      dispatch({ type: "RESET" });
-      setPageNumber(1);
-      setFocusMessageId(undefined);
     }
-  }, [ticketId, location.search]);
+  }, [location.search]);
+
+  useEffect(() => {
+    dispatch({ type: "RESET" });
+    setPageNumber(1);
+    setFocusMessageId(undefined);
+  }, [ticketId])
 
   useEffect(() => {
     setLoading(true);
