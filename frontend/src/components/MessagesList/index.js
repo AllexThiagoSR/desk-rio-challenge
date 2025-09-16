@@ -321,11 +321,8 @@ const MessagesList = ({ ticketId, isGroup }) => {
   const lastMessageRef = useRef();
   const currentTicketId = useRef(ticketId);
   const location = useLocation();
-  const history = useHistory();
   const [focusMessageId, setFocusMessageId] = useState();
   const focusingRef = useRef(false);
-  
-  console.log({ pageNumber, focusMessageId, focusingRef });
   
   useEffect(() => {
     const queryStrings = new URLSearchParams(location.search);
