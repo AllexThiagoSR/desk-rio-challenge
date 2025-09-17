@@ -351,11 +351,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
             params: { pageNumber },
           });
 
-          console.log("Cheguei aqui");
-          
-
           if (currentTicketId.current === ticketId) {
-            console.log("Cheguei aqui no carregamento de mensagens");
             dispatch({ type: "LOAD_MESSAGES", payload: data.messages });
             setHasMore(data.hasMore);
             setLoading(false);
@@ -365,21 +361,21 @@ const MessagesList = ({ ticketId, isGroup }) => {
             scrollToBottom();
 
           if (focusingRef.current && focusMessageId) {
-          requestAnimationFrame(() => {
-            const el = document.querySelector(`#message-${focusMessageId}`);
-            if (el) {
-              el.scrollIntoView({ block: "center" });
-              el.style.transition = "background 1s";
-              el.style.background = "rgba(53,205,150,0.2)";
-              setTimeout(() => (el.style.background = ""), 1000);
-            }
-            focusingRef.current = false;
-            setFocusMessageId(null);
-            const queryStrings = new URLSearchParams(location.search);
-            queryStrings.delete("focus");
-            queryStrings.delete("page");
-          });
-        }
+            requestAnimationFrame(() => {
+              const el = document.querySelector(`#message-${focusMessageId}`);
+              if (el) {
+                el.scrollIntoView({ block: "center" });
+                el.style.transition = "background 1s";
+                el.style.background = "rgba(53,205,150,0.2)";
+                setTimeout(() => (el.style.background = ""), 1000);
+              }
+              focusingRef.current = false;
+              setFocusMessageId(null);
+              const queryStrings = new URLSearchParams(location.search);
+              queryStrings.delete("focus");
+              queryStrings.delete("page");
+            });
+          }
         } catch (err) {
           setLoading(false);
           toastError(err);
