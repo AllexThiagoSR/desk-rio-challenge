@@ -371,9 +371,6 @@ const MessagesList = ({ ticketId, isGroup }) => {
               }
               focusingRef.current = false;
               setFocusMessageId(null);
-              const queryStrings = new URLSearchParams(location.search);
-              queryStrings.delete("focus");
-              queryStrings.delete("page");
             });
           }
         } catch (err) {
