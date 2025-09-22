@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, response, Response } from "express";
 
 import SetTicketMessagesAsRead from "../helpers/SetTicketMessagesAsRead";
 import { getIO } from "../libs/socket";
@@ -9,6 +9,8 @@ import ShowTicketService from "../services/TicketServices/ShowTicketService";
 import DeleteWhatsAppMessage from "../services/WbotServices/DeleteWhatsAppMessage";
 import SendWhatsAppMedia from "../services/WbotServices/SendWhatsAppMedia";
 import SendWhatsAppMessage from "../services/WbotServices/SendWhatsAppMessage";
+import ListMessagesMinifiedService from "../services/MessageServices/ListMessagesMinifiedService";
+import GetMessageMetadata from "../services/MessageServices/GetMessageMetadata";
 
 type IndexQuery = {
   pageNumber: string;
@@ -20,6 +22,11 @@ type MessageData = {
   read: boolean;
   quotedMsg?: Message;
 };
+
+type SearchQuery = {
+  page: string;
+  q: string;
+}
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
@@ -73,3 +80,24 @@ export const remove = async (
 
   return res.send();
 };
+
+export const listWithQuery = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { ticketId } = req.params;
+  const { page, q } = req.query as SearchQuery;
+
+  const { messages, hasMore, total } = await ListMessagesMinifiedService({ticketId, pageNumber: page, query: q })
+  return res.status(200).json({ messages, hasMore, total });
+}
+
+export const getMessageMeta = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { ticketId, messageId } = req.params;
+
+  const { page, pageSize, total } = await GetMessageMetadata({ticketId, messageId})
+  return res.status(200).json({ page, pageSize, total });
+}

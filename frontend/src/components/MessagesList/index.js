@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useReducer, useRef } from "react";
 
 import { isSameDay, parseISO, format } from "date-fns";
+import { useLocation, useHistory } from "react-router-dom";
 import openSocket from "../../services/socket-io";
 import clsx from "clsx";
 
@@ -314,19 +315,32 @@ const MessagesList = ({ ticketId, isGroup }) => {
   const [pageNumber, setPageNumber] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
-  const lastMessageRef = useRef();
-
   const [selectedMessage, setSelectedMessage] = useState({});
   const [anchorEl, setAnchorEl] = useState(null);
   const messageOptionsMenuOpen = Boolean(anchorEl);
+  const lastMessageRef = useRef();
   const currentTicketId = useRef(ticketId);
+  const location = useLocation();
+  const [focusMessageId, setFocusMessageId] = useState();
+  const focusingRef = useRef(false);
+  
+  useEffect(() => {
+    const queryStrings = new URLSearchParams(location.search);
+    const focus = queryStrings.get("focus");
+    const page = queryStrings.get("page");
+    currentTicketId.current = ticketId;
+    if (focus && page) {
+      focusingRef.current = true;
+      setPageNumber(Number(page));
+      setFocusMessageId(focus);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     dispatch({ type: "RESET" });
     setPageNumber(1);
-
-    currentTicketId.current = ticketId;
-  }, [ticketId]);
+    setFocusMessageId(undefined);
+  }, [ticketId])
 
   useEffect(() => {
     setLoading(true);
@@ -343,8 +357,21 @@ const MessagesList = ({ ticketId, isGroup }) => {
             setLoading(false);
           }
 
-          if (pageNumber === 1 && data.messages.length > 1) {
+          if (!focusingRef.current && pageNumber === 1 && data.messages.length > 1)
             scrollToBottom();
+
+          if (focusingRef.current && focusMessageId) {
+            requestAnimationFrame(() => {
+              const el = document.querySelector(`#message-${focusMessageId}`);
+              if (el) {
+                el.scrollIntoView({ block: "center" });
+                el.style.transition = "background 1s";
+                el.style.background = "rgba(53,205,150,0.2)";
+                setTimeout(() => (el.style.background = ""), 1000);
+              }
+              focusingRef.current = false;
+              setFocusMessageId(null);
+            });
           }
         } catch (err) {
           setLoading(false);
@@ -598,7 +625,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
             <React.Fragment key={message.id}>
               {renderDailyTimestamps(message, index)}
               {renderMessageDivider(message, index)}
-              <div className={classes.messageLeft}>
+              <div className={classes.messageLeft} id={`message-${message.id}`}>
                 <IconButton
                   variant="contained"
                   size="small"
@@ -632,7 +659,7 @@ const MessagesList = ({ ticketId, isGroup }) => {
             <React.Fragment key={message.id}>
               {renderDailyTimestamps(message, index)}
               {renderMessageDivider(message, index)}
-              <div className={classes.messageRight}>
+              <div className={classes.messageRight} id={`message-${message.id}`}>
                 <IconButton
                   variant="contained"
                   size="small"

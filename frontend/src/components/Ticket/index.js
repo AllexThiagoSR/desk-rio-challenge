@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import openSocket from "../../services/socket-io";
 import clsx from "clsx";
 
-import { Paper, makeStyles } from "@material-ui/core";
+import { IconButton, Paper, makeStyles } from "@material-ui/core";
 
 import ContactDrawer from "../ContactDrawer";
 import MessageInput from "../MessageInput/";
@@ -16,6 +16,8 @@ import MessagesList from "../MessagesList";
 import api from "../../services/api";
 import { ReplyMessageProvider } from "../../context/ReplyingMessage/ReplyingMessageContext";
 import toastError from "../../errors/toastError";
+import TicketSearchMessages from "../TicketSearchMessages";
+import { Search } from "@material-ui/icons";
 
 const drawerWidth = 320;
 
@@ -82,6 +84,7 @@ const Ticket = () => {
   const [loading, setLoading] = useState(true);
   const [contact, setContact] = useState({});
   const [ticket, setTicket] = useState({});
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     setLoading(true);
@@ -137,9 +140,20 @@ const Ticket = () => {
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
+    setSearchOpen(false);
   };
 
   const handleDrawerClose = () => {
+    setDrawerOpen(false);
+    setSearchOpen(false);
+  };
+
+  const handleSearchClose = () => {
+    setSearchOpen(false);
+    setDrawerOpen(false);
+  };
+  const handleSearchOpen = () => {
+    setSearchOpen(true);
     setDrawerOpen(false);
   };
 
@@ -161,7 +175,12 @@ const Ticket = () => {
             />
           </div>
           <div className={classes.ticketActionButtons}>
-            <TicketActionButtons ticket={ticket} />
+            <TicketActionButtons
+              ticket={ticket}
+            />
+            <IconButton onClick={handleSearchOpen}>
+              <Search />
+            </IconButton>
           </div>
         </TicketHeader>
         <ReplyMessageProvider>
@@ -177,6 +196,11 @@ const Ticket = () => {
         handleDrawerClose={handleDrawerClose}
         contact={contact}
         loading={loading}
+      />
+      <TicketSearchMessages
+        ticket={ticket}
+        open={searchOpen}
+        handleSearchClose={handleSearchClose}
       />
     </div>
   );
