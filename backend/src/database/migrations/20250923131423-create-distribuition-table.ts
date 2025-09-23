@@ -9,12 +9,7 @@ module.exports = {
         primaryKey: true,
         allowNull: false
       },
-      receiveNextTicket: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false,
-      },
-      userId: {
+      userToReceiveNextTicket: {
         type: DataTypes.INTEGER,
         references: { model: "Users", key: "id" },
         onDelete: "CASCADE",
