@@ -28,7 +28,11 @@ const ActivateDistributionService = async (queueId: number | string) => {
 
   const result = await Promise.all(writeOperations)
 
-  return result;
+  if (result[0][0] !== 1) throw new AppError("ERR_TO_UPDATE_QUEUE");
+
+  (queue as Queue).ticketDistributionIsActive = true;
+  
+  return queue;
 }
 
 export default ActivateDistributionService

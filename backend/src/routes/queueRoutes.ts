@@ -17,4 +17,6 @@ queueRoutes.delete("/queue/:queueId", isAuth, QueueController.remove);
 
 queueRoutes.patch("/queue/:queueId/activate-distribution", QueueController.activateDistribution);
 
+queueRoutes.patch("/queue/:queueId/deactivate-distribution", QueueController.deactivateDistribution);
+
 export default queueRoutes;
