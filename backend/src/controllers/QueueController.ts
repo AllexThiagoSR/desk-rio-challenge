@@ -72,20 +72,20 @@ export const remove = async (
 
 export const activateDistribution = async (req: Request, res: Response): Promise<Response> => {
   const queue = await ActivateDistributionService(req.params.queueId)
-  // const io = getIO();
-  // io.emit("queue", {
-  //   action: "update",
-  //   queue
-  // });
+  const io = getIO();
+  io.emit("queue", {
+    action: "update",
+    queue
+  });
   return res.status(200).json(queue);
 }
 
 export const deactivateDistribution = async (req: Request, res: Response): Promise<Response> => {
   const queue = await DeactivateDistributionService(req.params.queueId)
-  // const io = getIO();
-  // io.emit("queue", {
-  //   action: "update",
-  //   queue
-  // });
+  const io = getIO();
+  io.emit("queue", {
+    action: "update",
+    queue
+  });
   return res.status(200).json(queue);
 }
