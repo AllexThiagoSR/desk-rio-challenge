@@ -13,14 +13,15 @@ import {
   HasMany,
   BelongsToMany,
   ForeignKey,
-  BelongsTo
+  BelongsTo,
+  HasOne
 } from "sequelize-typescript";
 import { hash, compare } from "bcryptjs";
 import Ticket from "./Ticket";
 import Queue from "./Queue";
 import UserQueue from "./UserQueue";
 import Whatsapp from "./Whatsapp";
-import Distribuition from "./Distribution";
+import Distribution from "./Distribution";
 
 @Table
 class User extends Model<User> {
@@ -68,8 +69,8 @@ class User extends Model<User> {
   @BelongsToMany(() => Queue, () => UserQueue)
   queues: Queue[];
 
-  @BelongsTo(() => Distribuition)
-  distribution: Distribuition;
+  @HasOne(() => Distribution)
+  distribution: Distribution;
 
   @BeforeUpdate
   @BeforeCreate

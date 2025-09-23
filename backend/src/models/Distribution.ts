@@ -1,9 +1,9 @@
-import { BelongsTo, Column, ForeignKey, HasOne, Model, PrimaryKey, Table } from "sequelize-typescript";
+import { BelongsTo, Column, ForeignKey, Model, PrimaryKey, Table } from "sequelize-typescript";
 import User from "./User";
 import Queue from "./Queue";
 
-@Table
-export default class Distribuition extends Model<Distribuition> {
+@Table({ tableName: "Distribution", timestamps: false })
+export default class Distribution extends Model<Distribution> {
   @PrimaryKey
   @Column
   id: number;
@@ -12,7 +12,7 @@ export default class Distribuition extends Model<Distribuition> {
   @Column
   userToReceiveNextTicket: number;
 
-  @HasOne(() => User)
+  @BelongsTo(() => User)
   user: User;
 
   @ForeignKey(() => Queue)

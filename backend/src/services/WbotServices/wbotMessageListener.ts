@@ -247,6 +247,7 @@ const handleMessage = async (
   msg: WbotMessage,
   wbot: Session
 ): Promise<void> => {
+  console.log("Aqui que cria mensagem");
   if (!isValidMsg(msg)) {
     return;
   }
@@ -310,6 +311,9 @@ const handleMessage = async (
     } else {
       await verifyMessage(msg, ticket, contact);
     }
+
+    console.log(JSON.stringify(ticket, null, 2));
+    
 
     if (
       !ticket.queue &&
