@@ -7,6 +7,7 @@ import {
   IconButton,
   makeStyles,
   Paper,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -158,6 +159,23 @@ const Queues = () => {
     setSelectedQueue(null);
   };
 
+  const handleToggleActivateTicketDistribution = async (queueId, distributionIsActive) => {
+    try {
+      if (distributionIsActive) {
+        await api.patch(`/queue/${queueId}/deactivate-distribution`);
+        toast.success(i18n.t("Distribution in queue deactivated successfully!"));
+        return;
+      }
+        await api.patch(`/queue/${queueId}/activate-distribution`);
+        toast.success(i18n.t("Distribution in queue activated successfully!"));
+        return;
+    } catch (err) {
+      toastError(err);
+    }
+  }
+
+  console.log(queues);
+
   return (
     <MainContainer>
       <ConfirmationModal
@@ -210,8 +228,9 @@ const Queues = () => {
           </TableHead>
           <TableBody>
             <>
-              {queues.map((queue) => (
-                <TableRow key={queue.id}>
+              {queues.map((queue) => {
+                console.log(queue);
+                return (<TableRow key={queue.id}>
                   <TableCell align="center">{queue.name}</TableCell>
                   <TableCell align="center">
                     <div className={classes.customTableCell}>
@@ -253,9 +272,14 @@ const Queues = () => {
                     >
                       <DeleteOutline />
                     </IconButton>
+                    <Switch
+                      color="primary"
+                      value={queue.ticketDistributionIsActive}
+                      onClick={() => handleToggleActivateTicketDistribution(queue.id, queue.ticketDistributionIsActive) }
+                    />
                   </TableCell>
-                </TableRow>
-              ))}
+                </TableRow>)
+              })}
               {loading && <TableRowSkeleton columns={4} />}
             </>
           </TableBody>
