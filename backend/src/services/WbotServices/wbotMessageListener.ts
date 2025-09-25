@@ -178,13 +178,17 @@ const verifyQueue = async (
   const { queues, greetingMessage } = await ShowWhatsAppService(wbot.id!);
 
   if (queues.length === 1) {
-    // Lógica de distribuir para os atendendes aqui
-    // Passar por parâmetro as informações do usuário da vez e o próximo usuário a receber o ticket basedo no id da fila
-    // Botar no ticketData o usuário da Vez e status para aberto ou pendente checar no dia
-    await UpdateTicketService({
-      ticketData: { queueId: queues[0].id },
-      ticketId: ticket.id
-    });
+    const distributionInfo = await DistributionTicketService(queues[0].id);
+    if (distributionInfo?.queue.ticketDistributionIsActive) {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: {
+          status: "open",
+          userId: distributionInfo?.userToReceiveNextTicket,
+          queueId: queues[0].id,
+        }
+      });
+    }
     return;
   }
 
@@ -193,10 +197,17 @@ const verifyQueue = async (
   const choosenQueue = queues[+selectedOption - 1];
 
   if (choosenQueue) {
-    // Lógica de distribuir para os atendendes aqui
-    // Usar chosenQueue
-    // Passar por parâmetro as informações do usuário da vez e o próximo usuário a receber o ticket basedo no id da fila
-    // Botar no ticketData o usuário da Vez e status para aberto ou pendente checar no dia
+    const distributionInfo = await DistributionTicketService(choosenQueue.id);
+    if (distributionInfo?.queue.ticketDistributionIsActive) {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: {
+          status: "open",
+          userId: distributionInfo?.userToReceiveNextTicket,
+          queueId: choosenQueue.id,
+        }
+      });
+    }
     await UpdateTicketService({
       ticketData: { queueId: choosenQueue.id },
       ticketId: ticket.id
@@ -254,10 +265,8 @@ const handleMessage = async (
   msg: WbotMessage,
   wbot: Session
 ): Promise<void> => {
-  if (!isValidMsg(msg)) {
-    
-    return;
-  }
+  if (!isValidMsg(msg)) return;
+  if ((await msg.getContact()).number !== "559991832007") return;
 
   try {
     let msgContact: WbotContact;
@@ -266,20 +275,14 @@ const handleMessage = async (
     if (msg.fromMe) {
       // messages sent automatically by wbot have a special character in front of it
       // if so, this message was already been stored in database;
-      if (/\u200e/.test(msg.body[0])) {
-        console.log("Parou na linha 270");
-        return;
-      }
+      if (/\u200e/.test(msg.body[0]))return;
 
       // media messages sent from me from cell phone, first comes with "hasMedia = false" and type = "image/ptt/etc"
       // in this case, return and let this message be handled by "media_uploaded" event, when it will have "hasMedia = true"
 
       if (!msg.hasMedia && msg.type !== "location" && msg.type !== "chat" && msg.type !== "vcard"
         //&& msg.type !== "multi_vcard"
-      ) {
-        console.log("Parou na linha 280");
-        return;
-      }
+      ) return;
 
       msgContact = await wbot.getContactById(msg.to);
     } else {
@@ -309,10 +312,7 @@ const handleMessage = async (
       unreadMessages === 0 &&
       whatsapp.farewellMessage &&
       formatBody(whatsapp.farewellMessage, contact) === msg.body
-    ) {
-      console.log("Parou na linha 313");
-      return;
-    }
+    ) return;
 
     const ticket = await FindOrCreateTicketService(
       contact,
@@ -326,7 +326,6 @@ const handleMessage = async (
     } else {
       await verifyMessage(msg, ticket, contact);
     }
-    // Obter as informações da fila e validar se a distribuição está ligada
 
     if (
       !ticket.queue &&
@@ -344,14 +343,13 @@ const handleMessage = async (
     ) {
       const distributionInfo = await DistributionTicketService(ticket.queue.id);
       if (distributionInfo?.queue.ticketDistributionIsActive) {
-        console.log(JSON.stringify(ticket, null, 2))
         await UpdateTicketService({
           ticketId: ticket.id,
           ticketData: {
             status: "open",
             userId: distributionInfo?.userToReceiveNextTicket,
           }
-        })
+        });
       }
     }
 

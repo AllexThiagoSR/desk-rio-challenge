@@ -16,8 +16,7 @@ const DistributionTicketService = async (queueId: string | number): Promise<Dist
       order: [[{ model: User, as: "users" }, "id", "ASC"]]
     }]
   });
-
-  console.log((JSON.stringify(distributionInfo, null, 2)))
+  
   let userToReceiveNextTicketIndex: number = 0;
   if (!distributionInfo || !distributionInfo.queue.ticketDistributionIsActive) return null;
 
