@@ -25,6 +25,7 @@ import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import CreateContactService from "../ContactServices/CreateContactService";
 import GetContactService from "../ContactServices/GetContactService";
 import formatBody from "../../helpers/Mustache";
+import DistributionTicketService from "../DistributionService/DistributionTicketService";
 
 interface Session extends Client {
   id?: number;
@@ -177,11 +178,13 @@ const verifyQueue = async (
   const { queues, greetingMessage } = await ShowWhatsAppService(wbot.id!);
 
   if (queues.length === 1) {
+    // Lógica de distribuir para os atendendes aqui
+    // Passar por parâmetro as informações do usuário da vez e o próximo usuário a receber o ticket basedo no id da fila
+    // Botar no ticketData o usuário da Vez e status para aberto ou pendente checar no dia
     await UpdateTicketService({
       ticketData: { queueId: queues[0].id },
       ticketId: ticket.id
     });
-
     return;
   }
 
@@ -190,6 +193,10 @@ const verifyQueue = async (
   const choosenQueue = queues[+selectedOption - 1];
 
   if (choosenQueue) {
+    // Lógica de distribuir para os atendendes aqui
+    // Usar chosenQueue
+    // Passar por parâmetro as informações do usuário da vez e o próximo usuário a receber o ticket basedo no id da fila
+    // Botar no ticketData o usuário da Vez e status para aberto ou pendente checar no dia
     await UpdateTicketService({
       ticketData: { queueId: choosenQueue.id },
       ticketId: ticket.id
@@ -247,8 +254,8 @@ const handleMessage = async (
   msg: WbotMessage,
   wbot: Session
 ): Promise<void> => {
-  console.log("Aqui que cria mensagem");
   if (!isValidMsg(msg)) {
+    
     return;
   }
 
@@ -259,14 +266,20 @@ const handleMessage = async (
     if (msg.fromMe) {
       // messages sent automatically by wbot have a special character in front of it
       // if so, this message was already been stored in database;
-      if (/\u200e/.test(msg.body[0])) return;
+      if (/\u200e/.test(msg.body[0])) {
+        console.log("Parou na linha 270");
+        return;
+      }
 
       // media messages sent from me from cell phone, first comes with "hasMedia = false" and type = "image/ptt/etc"
       // in this case, return and let this message be handled by "media_uploaded" event, when it will have "hasMedia = true"
 
       if (!msg.hasMedia && msg.type !== "location" && msg.type !== "chat" && msg.type !== "vcard"
         //&& msg.type !== "multi_vcard"
-      ) return;
+      ) {
+        console.log("Parou na linha 280");
+        return;
+      }
 
       msgContact = await wbot.getContactById(msg.to);
     } else {
@@ -296,8 +309,10 @@ const handleMessage = async (
       unreadMessages === 0 &&
       whatsapp.farewellMessage &&
       formatBody(whatsapp.farewellMessage, contact) === msg.body
-    )
+    ) {
+      console.log("Parou na linha 313");
       return;
+    }
 
     const ticket = await FindOrCreateTicketService(
       contact,
@@ -311,9 +326,7 @@ const handleMessage = async (
     } else {
       await verifyMessage(msg, ticket, contact);
     }
-
-    console.log(JSON.stringify(ticket, null, 2));
-    
+    // Obter as informações da fila e validar se a distribuição está ligada
 
     if (
       !ticket.queue &&
@@ -323,6 +336,23 @@ const handleMessage = async (
       whatsapp.queues.length >= 1
     ) {
       await verifyQueue(wbot, msg, ticket, contact);
+    } else if (
+      ticket.queue &&
+      !chat.isGroup &&
+      !msg.fromMe &&
+      !ticket.userId
+    ) {
+      const distributionInfo = await DistributionTicketService(ticket.queue.id);
+      if (distributionInfo?.queue.ticketDistributionIsActive) {
+        console.log(JSON.stringify(ticket, null, 2))
+        await UpdateTicketService({
+          ticketId: ticket.id,
+          ticketData: {
+            status: "open",
+            userId: distributionInfo?.userToReceiveNextTicket,
+          }
+        })
+      }
     }
 
     if (msg.type === "vcard") {
@@ -415,6 +445,7 @@ const handleMessage = async (
     } */
   } catch (err) {
     Sentry.captureException(err);
+    console.log(err);
     logger.error(`Error handling whatsapp message: Err: ${err}`);
   }
 };

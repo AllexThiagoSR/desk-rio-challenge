@@ -3,7 +3,7 @@ import Distribution from "../../models/Distribution";
 import Queue from "../../models/Queue"
 import User from "../../models/User"
 
-const ActivateDistributionService = async (queueId: number | string) => {
+const ActivateDistributionService = async (queueId: number | string): Promise<Queue> => {
   
   const readOperations = [
     Queue.findByPk(
@@ -32,7 +32,7 @@ const ActivateDistributionService = async (queueId: number | string) => {
 
   (queue as Queue).ticketDistributionIsActive = true;
   
-  return queue;
+  return queue as Queue;
 }
 
 export default ActivateDistributionService
