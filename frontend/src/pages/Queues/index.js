@@ -274,7 +274,7 @@ const Queues = () => {
                     </IconButton>
                     <Switch
                       color="primary"
-                      value={queue.ticketDistributionIsActive}
+                      checked={queue.ticketDistributionIsActive}
                       onClick={() => handleToggleActivateTicketDistribution(queue.id, queue.ticketDistributionIsActive) }
                     />
                   </TableCell>
