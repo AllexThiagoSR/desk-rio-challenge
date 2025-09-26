@@ -207,6 +207,11 @@ const verifyQueue = async (
           queueId: choosenQueue.id,
         }
       });
+    } else {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: { queueId: choosenQueue.id }
+      });
     }
 
     const body = formatBody(`\u200e${choosenQueue.greetingMessage}`, contact);
