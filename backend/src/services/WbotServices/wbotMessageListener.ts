@@ -208,10 +208,6 @@ const verifyQueue = async (
         }
       });
     }
-    await UpdateTicketService({
-      ticketData: { queueId: choosenQueue.id },
-      ticketId: ticket.id
-    });
 
     const body = formatBody(`\u200e${choosenQueue.greetingMessage}`, contact);
 
@@ -266,7 +262,6 @@ const handleMessage = async (
   wbot: Session
 ): Promise<void> => {
   if (!isValidMsg(msg)) return;
-  if ((await msg.getContact()).number !== "559991832007") return;
 
   try {
     let msgContact: WbotContact;
