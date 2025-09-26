@@ -188,6 +188,11 @@ const verifyQueue = async (
           queueId: queues[0].id,
         }
       });
+    } else {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: { queueId: queues[0].id }
+      });
     }
     return;
   }
