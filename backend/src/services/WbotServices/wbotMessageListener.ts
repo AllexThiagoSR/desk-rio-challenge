@@ -25,6 +25,7 @@ import UpdateTicketService from "../TicketServices/UpdateTicketService";
 import CreateContactService from "../ContactServices/CreateContactService";
 import GetContactService from "../ContactServices/GetContactService";
 import formatBody from "../../helpers/Mustache";
+import DistributionTicketService from "../DistributionService/DistributionTicketService";
 
 interface Session extends Client {
   id?: number;
@@ -177,11 +178,22 @@ const verifyQueue = async (
   const { queues, greetingMessage } = await ShowWhatsAppService(wbot.id!);
 
   if (queues.length === 1) {
-    await UpdateTicketService({
-      ticketData: { queueId: queues[0].id },
-      ticketId: ticket.id
-    });
-
+    const distributionInfo = await DistributionTicketService(queues[0].id);
+    if (distributionInfo?.queue.ticketDistributionIsActive) {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: {
+          status: "open",
+          userId: distributionInfo?.userToReceiveNextTicket,
+          queueId: queues[0].id,
+        }
+      });
+    } else {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: { queueId: queues[0].id }
+      });
+    }
     return;
   }
 
@@ -190,10 +202,22 @@ const verifyQueue = async (
   const choosenQueue = queues[+selectedOption - 1];
 
   if (choosenQueue) {
-    await UpdateTicketService({
-      ticketData: { queueId: choosenQueue.id },
-      ticketId: ticket.id
-    });
+    const distributionInfo = await DistributionTicketService(choosenQueue.id);
+    if (distributionInfo?.queue.ticketDistributionIsActive) {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: {
+          status: "open",
+          userId: distributionInfo?.userToReceiveNextTicket,
+          queueId: choosenQueue.id,
+        }
+      });
+    } else {
+      await UpdateTicketService({
+        ticketId: ticket.id,
+        ticketData: { queueId: choosenQueue.id }
+      });
+    }
 
     const body = formatBody(`\u200e${choosenQueue.greetingMessage}`, contact);
 
@@ -247,9 +271,7 @@ const handleMessage = async (
   msg: WbotMessage,
   wbot: Session
 ): Promise<void> => {
-  if (!isValidMsg(msg)) {
-    return;
-  }
+  if (!isValidMsg(msg)) return;
 
   try {
     let msgContact: WbotContact;
@@ -258,7 +280,7 @@ const handleMessage = async (
     if (msg.fromMe) {
       // messages sent automatically by wbot have a special character in front of it
       // if so, this message was already been stored in database;
-      if (/\u200e/.test(msg.body[0])) return;
+      if (/\u200e/.test(msg.body[0]))return;
 
       // media messages sent from me from cell phone, first comes with "hasMedia = false" and type = "image/ptt/etc"
       // in this case, return and let this message be handled by "media_uploaded" event, when it will have "hasMedia = true"
@@ -295,8 +317,7 @@ const handleMessage = async (
       unreadMessages === 0 &&
       whatsapp.farewellMessage &&
       formatBody(whatsapp.farewellMessage, contact) === msg.body
-    )
-      return;
+    ) return;
 
     const ticket = await FindOrCreateTicketService(
       contact,
@@ -319,6 +340,22 @@ const handleMessage = async (
       whatsapp.queues.length >= 1
     ) {
       await verifyQueue(wbot, msg, ticket, contact);
+    } else if (
+      ticket.queue &&
+      !chat.isGroup &&
+      !msg.fromMe &&
+      !ticket.userId
+    ) {
+      const distributionInfo = await DistributionTicketService(ticket.queue.id);
+      if (distributionInfo?.queue.ticketDistributionIsActive) {
+        await UpdateTicketService({
+          ticketId: ticket.id,
+          ticketData: {
+            status: "open",
+            userId: distributionInfo?.userToReceiveNextTicket,
+          }
+        });
+      }
     }
 
     if (msg.type === "vcard") {
@@ -411,6 +448,7 @@ const handleMessage = async (
     } */
   } catch (err) {
     Sentry.captureException(err);
+    console.log(err);
     logger.error(`Error handling whatsapp message: Err: ${err}`);
   }
 };

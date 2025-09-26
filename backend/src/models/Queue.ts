@@ -8,13 +8,16 @@ import {
   AutoIncrement,
   AllowNull,
   Unique,
-  BelongsToMany
+  BelongsToMany,
+  HasOne,
+  Default
 } from "sequelize-typescript";
 import User from "./User";
 import UserQueue from "./UserQueue";
 
 import Whatsapp from "./Whatsapp";
 import WhatsappQueue from "./WhatsappQueue";
+import Distribution from "./Distribution";
 
 @Table
 class Queue extends Model<Queue> {
@@ -33,6 +36,11 @@ class Queue extends Model<Queue> {
   @Column
   color: string;
 
+  @AllowNull(false)
+  @Default(false)
+  @Column
+  ticketDistributionIsActive: boolean;
+
   @Column
   greetingMessage: string;
 
@@ -47,6 +55,9 @@ class Queue extends Model<Queue> {
 
   @BelongsToMany(() => User, () => UserQueue)
   users: Array<User & { UserQueue: UserQueue }>;
+
+  @HasOne(() => Distribution)
+  distribution: Distribution;
 }
 
 export default Queue;

@@ -1,6 +1,7 @@
 import * as Yup from "yup";
 import AppError from "../../errors/AppError";
 import Queue from "../../models/Queue";
+import ActivateDistributionService from "./ActivateQueueDistribution";
 
 interface QueueData {
   name: string;

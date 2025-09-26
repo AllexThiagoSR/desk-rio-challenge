@@ -5,6 +5,8 @@ import DeleteQueueService from "../services/QueueService/DeleteQueueService";
 import ListQueuesService from "../services/QueueService/ListQueuesService";
 import ShowQueueService from "../services/QueueService/ShowQueueService";
 import UpdateQueueService from "../services/QueueService/UpdateQueueService";
+import ActivateDistributionService from "../services/QueueService/ActivateQueueDistribution";
+import DeactivateDistributionService from "../services/QueueService/DeactivateQueueDistribution";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const queues = await ListQueuesService();
@@ -67,3 +69,23 @@ export const remove = async (
 
   return res.status(200).send();
 };
+
+export const activateDistribution = async (req: Request, res: Response): Promise<Response> => {
+  const queue = await ActivateDistributionService(req.params.queueId)
+  const io = getIO();
+  io.emit("queue", {
+    action: "update",
+    queue
+  });
+  return res.status(200).json(queue);
+}
+
+export const deactivateDistribution = async (req: Request, res: Response): Promise<Response> => {
+  const queue = await DeactivateDistributionService(req.params.queueId)
+  const io = getIO();
+  io.emit("queue", {
+    action: "update",
+    queue
+  });
+  return res.status(200).json(queue);
+}
